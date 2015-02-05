@@ -1,3 +1,16 @@
+"""
+@author: Nick Rhinehart
+nrhineha@cs.cmu.edu
+nrhine1@gmail.com
+Carnegie Mellon University 
+
+Simple pythonic socket interface for
+
+Visual Structure From Motion by
+Changchang Wu
+ccwu@cs.washington.edu
+"""
+
 from multiprocessing import Process
 from collections import OrderedDict
 import os, pdb
