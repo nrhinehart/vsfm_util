@@ -5,7 +5,7 @@ example_dir = 'examples/kermit'
 os.chdir(example_dir)
 
 path_to_vsfm_bin = '/home/nrhineha/dev/vsfm/bin/VisualSFM'
-i = vsfmu.vsfm_interface(vsfm_binary_fin = path_to_vsfm_bin)
+i = vsfmu.vsfm_interface(vsfm_binary_fn = path_to_vsfm_bin)
 
 # these will send commands over sockets and not wait... VSFM will process sequentially
 i.file_open_current_path()
