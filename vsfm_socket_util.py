@@ -121,7 +121,7 @@ class vsfm_interface(object):
         self.__del__()
 
     def __del__(self):
-        self.commander.exit_program()
+        self.commander.file_exit_program()
         self.sock.close()
 
         
