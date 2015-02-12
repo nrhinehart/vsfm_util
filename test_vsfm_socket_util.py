@@ -18,3 +18,5 @@ i.view_dense_3d_points()
 print "entering pdb REPL for additional user commands"
 pdb.set_trace()
 # i.close()
+
+

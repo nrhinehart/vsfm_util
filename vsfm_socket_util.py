@@ -57,11 +57,12 @@ class vsfm_commander(object):
     # sending the command
     def create_single_function(self, fid, func_name):
         def _(*args, **kwargs):
-            if len(args) > 0:
-                cmd = '{} {}\n'.format(fid, *args)
-            else:
-                cmd = '{}\n'.format(fid)
-            print "sending command over port {}: ({},{}".format(self.socket.getsockname()[1], func_name, cmd)
+            cmd = '{}{}{} {}\n'.format(fid, 
+                                       'c' if 'control' in kwargs else '',
+                                       's' if 'shift' in kwargs else '',
+                                       args[0] if len(args) > 0 else '')
+
+            print "sending command over port {}: ({},{}".format(self.socket.getsockname()[1], func_name, cmd.strip())
             self.socket.sendall(cmd)
         return _                        
 
@@ -73,7 +74,9 @@ class vsfm_interface(object):
                  vsfm_binary_fn = '/home/nrhineha/dev/vsfm/bin/VisualSFM', 
                  port = None,
                  host = 'localhost'):
+        self.init()
 
+    def init(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if self.port is None:
             tmp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -83,18 +86,33 @@ class vsfm_interface(object):
             del tmp_sock
             print "will bind to port: {}".format(self.port)
 
-        self.vsfm_process = Process(target = self.start_program).start()
+        self.vsfm_process = Process(target = self.start_program)
+        self.vsfm_process.start()
         
-        for _ in range(3):
+        for _ in range(10):
             try:
                 self.sock.connect((self.host, self.port))
                 break
             except:
                 time.sleep(0.1)
+        time.sleep(0.05)
 
         self.commander = vsfm_commander(self.sock)
         self.add_functions_from_commander()
         self.create_overrides()
+
+    def restart(self):
+        try:
+            self.commander.file_exit_program()
+        except:
+            pass
+        try:
+            self.vsfm_process.join()
+        except:
+            pass
+
+        self.port = None
+        self.init()
         
     def add_functions_from_commander(self):
         for func_name, (fid, func) in self.commander.functions.items():
@@ -112,8 +130,10 @@ class vsfm_interface(object):
             rd_func(path)
         setattr(self, 'sfm_reconstruct_dense', reconstruct_dense)
 
+
+
     def start_program(self):
-        self.cmd = '{} listen[+log] {}'.format(self.vsfm_binary_fn, self.port)
+        self.cmd = '{} listen+log {}'.format(self.vsfm_binary_fn, self.port)
         self.args = self.cmd.split(' ')
         self.vsfm_subprocess = subprocess.Popen(self.args)
     
