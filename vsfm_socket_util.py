@@ -18,7 +18,7 @@ import time
 import socket
 import sys
 import thread
-import subprocess
+import subprocess, signal
 
 import type_util as typeu
 import data.vsfm_ui as vsfm_ui
@@ -26,7 +26,7 @@ import data.vsfm_ui as vsfm_ui
 cur_dir = os.path.dirname(os.path.realpath(__file__))
 
 # programmatically make functions based on py dictionary of commands
-class vsfm_commander(object):
+class VSFMCommander(object):
     def __init__(self, socket):
         self.functions = OrderedDict()
         self.socket = socket
@@ -67,7 +67,7 @@ class vsfm_commander(object):
         return _                        
 
 # main interface class
-class vsfm_interface(object):
+class VSFMInterface(object):
     
     @typeu.member_initializer
     def __init__(self, 
@@ -89,6 +89,17 @@ class vsfm_interface(object):
         self.vsfm_process = Process(target = self.start_program)
         self.vsfm_process.start()
         
+        def handle_sigint(sig, frame):
+            self.close()
+            raise KeyboardInterrupt()
+
+        def handle_sigquit(sig, frame):
+            self.close()
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, handle_sigint)
+        signal.signal(signal.SIGQUIT, handle_sigquit)
+
         for _ in range(10):
             try:
                 self.sock.connect((self.host, self.port))
@@ -97,7 +108,7 @@ class vsfm_interface(object):
                 time.sleep(0.1)
         time.sleep(0.05)
 
-        self.commander = vsfm_commander(self.sock)
+        self.commander = VSFMCommander(self.sock)
         self.add_functions_from_commander()
         self.create_overrides()
 
@@ -130,17 +141,12 @@ class vsfm_interface(object):
             rd_func(path)
         setattr(self, 'sfm_reconstruct_dense', reconstruct_dense)
 
-
-
     def start_program(self):
         self.cmd = '{} listen+log {}'.format(self.vsfm_binary_fn, self.port)
         self.args = self.cmd.split(' ')
         self.vsfm_subprocess = subprocess.Popen(self.args)
     
     def close(self):
-        self.__del__()
-
-    def __del__(self):
         self.commander.file_exit_program()
         self.sock.close()
 
